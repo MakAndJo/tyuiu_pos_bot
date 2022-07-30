@@ -1,0 +1,6 @@
+.vs
+.vscode
+.history
+.state*
+__pycache__
+*.pyi
