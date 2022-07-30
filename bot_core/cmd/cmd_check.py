@@ -63,9 +63,8 @@ async def process_input_mark(message: Message):
     return await init.bot.reply_to(message, f'"{mark}" не похоже на баллы ЕГЭ! Дак сколько у тебя баллов?')
   user = await init.bot.current_states.get_data(message.chat.id, message.from_user.id)
   user["mark"] = int(mark)
-  #await init.bot.reply_to(message, f'Хмм.. {user["mark"]} - реально неплохо!')
-
-  return False
+  #await init.bot.reply_to(message, f'Хмм.. {user["mark"]} - реально неплохо!'
+  return await send_check_wrapper_raw(message.from_user.id, message.chat.id)
 
 async def send_origs_input(message: Message):
   return await send_origs_input_raw(message.from_user.id, message.chat.id)
@@ -73,7 +72,6 @@ async def send_origs_input(message: Message):
 async def send_origs_input_raw(user_id: int, chat_id: int = None):
   if not chat_id: chat_id = user_id
   await init.bot.set_state(user_id, UserState.set_use_origs)
-  user = await init.bot.current_states.get_data(chat_id, user_id)
   markup = build_origs_markup()
   return await init.bot.send_message(chat_id, 'Смотрим с оригиналами?', reply_markup=markup)
 
