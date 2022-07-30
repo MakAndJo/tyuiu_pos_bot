@@ -1,2 +1,2 @@
-# tyuiu_pos_bot
+# Tyuiu Pos Bot
  Tyuiu position check bot
