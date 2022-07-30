@@ -1,0 +1,1 @@
+from . import cmd_start, cmd_eduforms, cmd_directions, cmd_edutype, cmd_orgs, cmd_disciplines, cmd_check
