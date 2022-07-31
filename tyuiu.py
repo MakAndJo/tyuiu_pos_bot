@@ -12,11 +12,21 @@ TYUIU_HEADERES = {
 }
 
 TYUIU_EDUTYPE = {
-  1: "Научная специальность", # аспирантура
-  2: "направление бакалавров", # бакалавриат
-  3: "направление магистров", # магистратура
-  4: "специальность ВО", # высшее образование (специалитет)
+  1: "профессия СПО", # среднее профессиональное образование (профессия) ⛔️
+  2: "специальность СПО", # среднее профессиональное образование (специальность)⛔️
+  3: "направление бакалавров", # бакалавриат ✅
+  4: "направление магистров", # магистратура ⛔️
+  5: "специальность ВО", # высшее образование (специалитет) ✅
+  42: "Научная специальность", # аспирантура ⛔️
 }
+
+#second num
+#spo1 01 t1 (college)
+#spo2 02 t1 (college)
+#baclor 03 t3 (institute)
+#mag 04 t0 (institute)
+#spec 05 t3 (institute)
+#asp 1,2,3,4,5,6,7,8,9 t2 (institute)
 
 TYUIU_EDUFORM = {
   1: "Очная",
@@ -60,10 +70,9 @@ def get_tyuiu_organizations() -> dict[int, str]:
 
 def get_tyuiu_disciplines(t_organization: int, eduform: int = 1, direction: int = 2, edutype: int = 2) -> list[str]:
   if len(cached_disciplines) > 0:
-    for d in cached_disciplines:
-      if d['organization'] == t_organization and d['eduform'] == eduform and d['direction'] == direction and d['edutype'] == edutype:
-        return d['disciplines']
-  disciplines = []
+    for discipline in cached_disciplines:
+      if discipline['organization'] == t_organization and discipline['eduform'] == eduform and discipline['direction'] == direction and discipline['edutype'] == edutype:
+        return discipline['disciplines']
   tyuiu_payload = create_tyuiu_payload({
     'action': 'disciplines',
     'org': t_organization,
@@ -72,6 +81,7 @@ def get_tyuiu_disciplines(t_organization: int, eduform: int = 1, direction: int 
   }, True)
   data = get_tyuiu_data(tyuiu_payload)
   parsed_data = parse_tyuiu_data(data)
+  disciplines = []
   if parsed_data.text != "0":
     for t_option in parsed_data.find_all('option'):
       if t_option.has_attr('value') and t_option.has_attr('name'):
@@ -161,45 +171,16 @@ def parse_tyuiu_table_to_array(t_table: Union[Tag, NavigableString, None], add_h
     end_results.extend(t_results)
   return end_results
 
+def parse_discipline_edutype(discipline: str) -> int:
+  d_type = str(discipline).split('.')[1]
+  if len(d_type) == 1: return 42 # asp
+  if d_type == "01": return 1 #spo prof
+  if d_type == "02": return 2 #spo spec
+  if d_type == "03": return 3 #bak
+  if d_type == "04": return 4 #mag
+  if d_type == "05": return 5 #spec vo
+  return 0
 
-needed_payloads = [
-  {
-    'org': 2,
-    'prof': '13.03.02 Электроэнергетика и электротехника (Электроснабжение; Электропривод и автоматика)'
-  },
-  {
-    'org': 2,
-    'prof': '15.03.06 Мехатроника и робототехника (Робототехника и гибкие производственные модули)'
-  },
-  {
-    'org': 4,
-    'prof': '21.05.02 Прикладная геология,  21.05.03 Технология геологической разведки'
-  },
-  {
-    'org': 4,
-    'prof': '27.03.04 Управление в технических системах (Интеллектуальные системы и средства АУ)'
-  },
-  {
-    'org': 4,
-    'prof': '09.03.01 Информатика и вычислительная техника  (АСОИУ), 09.03.02 Информационные системы и технологии (ИСТГНГО, ИИП)'
-  },
-  {
-    'org': 5,
-    'prof': '23.05.01 Наземные транспортно-технологические средства (Подъемно-транспортные, строительные, дорожные средства и оборудование)'
-  },
-  {
-    'org': 6,
-    'prof': '09.03.02 Информационные системы и технологии (Информационные системы и технологии)'
-  },
-  {
-    'org': 7,
-    'prof': '01.03.02 Прикладная математика и информатика'
-  },
-  {
-    'org': 7,
-    'prof': '02.03.01 Математика и компьютерные науки'
-  }
-]
 
 def get_tyuiu_results(payload: dict, mark: int, with_originals: bool = False) -> List[dict]:
   end_result = dict()
@@ -211,11 +192,28 @@ def get_tyuiu_results(payload: dict, mark: int, with_originals: bool = False) ->
   if parsed_data:
     end_result['prof'] = payload['prof']
     end_result['org'] = payload['org']
+    end_result['direction'] = int(payload['direction'])
+    end_result['eduform'] = int(payload['eduform'])
+    end_result['edutype'] = parse_discipline_edutype(payload['prof'])
 
-    bak_count = parsed_data.find('div', id=re.compile('^enrolled_')).text
-    if bak_count:
-      end_result['bak_count'] = int(bak_count)
-    
+    if end_result['direction'] == 2: # budget
+      if end_result['edutype'] == 1: # spo prof
+        profspo_count = parsed_data.find('div', id=re.compile('^enrolled_profspo_count'))
+        end_result['budget_count'] = int(profspo_count.text)
+      elif end_result['edutype'] == 2: # spo spec
+        specspo_count = parsed_data.find('div', id=re.compile('^enrolled_specspo_count'))
+        end_result['budget_count'] = int(specspo_count.text)
+      elif end_result['edutype'] == 3 or end_result['edutype'] == 5: # bak or spec vo
+        bak_count = parsed_data.find('div', id=re.compile('^enrolled_bak_count'))
+        end_result['budget_count'] = int(bak_count.text)
+      elif end_result['edutype'] == 4: # mag
+        mag_count = parsed_data.find('div', id=re.compile('^enrolled_mag_count'))
+        end_result['budget_count'] = int(mag_count.text)
+      else:
+        end_result['budget_count'] = 0
+    else: #paid
+      end_result['budget_count'] = 0
+
     table = parsed_data.find('table', attrs={'id':'table'})
     results = parse_tyuiu_table_to_array(table, add_header=False)
 
@@ -255,6 +253,45 @@ def main():
     elif str(word).startswith("н") or str(word).startswith("n"):
       return False
     return None
+  
+  needed_payloads = [
+    {
+      'org': 2,
+      'prof': '13.03.02 Электроэнергетика и электротехника (Электроснабжение; Электропривод и автоматика)'
+    },
+    {
+      'org': 2,
+      'prof': '15.03.06 Мехатроника и робототехника (Робототехника и гибкие производственные модули)'
+    },
+    {
+      'org': 4,
+      'prof': '21.05.02 Прикладная геология,  21.05.03 Технология геологической разведки'
+    },
+    {
+      'org': 4,
+      'prof': '27.03.04 Управление в технических системах (Интеллектуальные системы и средства АУ)'
+    },
+    {
+      'org': 4,
+      'prof': '09.03.01 Информатика и вычислительная техника  (АСОИУ), 09.03.02 Информационные системы и технологии (ИСТГНГО, ИИП)'
+    },
+    {
+      'org': 5,
+      'prof': '23.05.01 Наземные транспортно-технологические средства (Подъемно-транспортные, строительные, дорожные средства и оборудование)'
+    },
+    {
+      'org': 6,
+      'prof': '09.03.02 Информационные системы и технологии (Информационные системы и технологии)'
+    },
+    {
+      'org': 7,
+      'prof': '01.03.02 Прикладная математика и информатика'
+    },
+    {
+      'org': 7,
+      'prof': '02.03.01 Математика и компьютерные науки'
+    }
+  ]
 
   def run():
     print("\033[H\033[J", end="") # clear the screen
@@ -300,5 +337,5 @@ if __name__ == '__main__':
   except KeyboardInterrupt:
     pass
 else:
-  print("TYUIU FROM:", __name__)
+  print("Import tyuiu:", __name__)
 
