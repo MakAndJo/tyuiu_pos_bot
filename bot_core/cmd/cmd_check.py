@@ -32,14 +32,20 @@ async def send_check_raw(user_id: int, chat_id: int = None):
     for d_ind, discipline in enumerate(payload["disciplines"]):
       msg = await init.bot.send_message(chat_id, "Загрузка данных...")
       data = get_tyuiu_results({
+        'edutype': payload["edutype"],
+        'eduform': payload["eduform"],
+        'direction': payload["direction"],
         'org': payload["org"],
-        'prof': discipline
+        'prof': discipline,
       }, user["mark"], user["with_originals"])
-      required_keys = ["pos", "prof", "bak_count", "total"]
+      required_keys = ["pos", "prof", "budget_count", "total"]
       if all(x in [k for k in data] for x in required_keys):
         text = (
-          f"*Профессия:* {data['prof']}\n"
-          f"*Бюджетных мест:* {data['bak_count']}\n"
+          f"*Направление подготовки:* {data['prof']}\n"
+          f"*Категория:* {edu_directions[data['direction']]}\n"
+          f"*Форма:* {edu_forms[data['eduform']]}\n"
+          f"*Уровень образования:* {edu_types[data['edutype']]}\n"
+          f"*Бюджетных мест:* {data['budget_count']}\n"
           f"*Ваша позиция:* {data['pos']} ({data['total']} баллов)\n"
         )
         await init.bot.edit_message_text(chat_id=msg.chat.id, message_id=msg.message_id, text=text, parse_mode='Markdown')
