@@ -45,7 +45,6 @@ def build_directions_markup(user_direction: list):
 
 def build_disciplines_markup(user_disciplines: list, disciplines: list):
   markup = InlineKeyboardMarkup()
-  markup.row_width = 1
   for index, discipline in enumerate(disciplines):
     markup.add(InlineKeyboardButton(f"{'✅' if discipline in user_disciplines else ''}\xa0{discipline}", callback_data=f"discipline={index}"))
   markup.add(InlineKeyboardButton(f"Продолжить\xa0{'➡️' if len(user_disciplines) > 0 else ''}", callback_data="discipline-next"))
