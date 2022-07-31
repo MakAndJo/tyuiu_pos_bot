@@ -15,6 +15,12 @@ async def send_orgs_raw(user_id: int, chat_id: int = None):
   markup = build_orgs_markup(user['orgs'])
   return await init.bot.send_message(chat_id, "Выбери институт:", reply_markup=markup)
 
+async def send_orgs_edit(message: Message, user_id: int):
+  await init.bot.set_state(user_id, UserState.set_edu_orgs)
+  user = await init.bot.current_states.get_data(user_id, user_id)
+  markup = build_orgs_markup(user['orgs'])
+  return await init.bot.edit_message_text("Выбери институт:", message.chat.id, message.message_id, reply_markup=markup)
+
 async def process_orgs(call: CallbackQuery):
   user = await init.bot.current_states.get_data(call.message.chat.id, call.from_user.id)
   if call.data != "org-next":
@@ -38,8 +44,6 @@ async def process_orgs(call: CallbackQuery):
     return
 
   await init.bot.answer_callback_query(call.id, text="Организации выбраны!")
-  ob = '\n'.join(map(lambda e: str(f"- *{tyuiu_orgs[e]}*"), user["orgs"]))
-  await init.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=f"Выбранные организации:\n{ob}", parse_mode='Markdown')
 
   await cmd_disciplines.send_disciplines_raw(call.from_user.id)
 

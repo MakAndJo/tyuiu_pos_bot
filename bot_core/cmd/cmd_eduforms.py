@@ -5,6 +5,8 @@ from bot_core.cmd import cmd_directions
 from constants import edu_forms
 import init
 
+
+
 async def send_eduforms(message: Message):
   return await send_eduforms_raw(message.from_user.id, message.chat.id)
 
@@ -39,9 +41,7 @@ async def process_eduforms(call: CallbackQuery):
     return
 
   await init.bot.answer_callback_query(call.id, text="Формы обучения выбранны!")
-  ob = '\n'.join(map(lambda e: str(f"- *{edu_forms[e]}*"), user["eduforms"]))
-  await init.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=f"Форма бучения:\n{ob}", parse_mode='Markdown')
-
-  await cmd_directions.send_directions_raw(call.from_user.id)
+  
+  await cmd_directions.send_directions_edit(call.message, call.from_user.id) # next step
 
   return

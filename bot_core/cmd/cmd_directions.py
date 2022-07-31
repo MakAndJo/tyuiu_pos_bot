@@ -15,6 +15,13 @@ async def send_directions_raw(user_id: int, chat_id: int = None):
   markup = build_directions_markup(user['directions'])
   return await init.bot.send_message(chat_id, "Выбери категорию обучения:", reply_markup=markup)
 
+async def send_directions_edit(message: Message, user_id: int):
+  await init.bot.set_state(user_id, UserState.set_edu_direction)
+  user = await init.bot.current_states.get_data(user_id, user_id)
+  markup = build_directions_markup(user['directions'])
+  return await init.bot.edit_message_text("Выбери категорию обучения:", message.chat.id, message.message_id, reply_markup=markup)
+
+
 async def process_directions(call: CallbackQuery):
   user = await init.bot.current_states.get_data(call.message.chat.id, call.from_user.id)
   if call.data != "direction-next":
@@ -39,9 +46,7 @@ async def process_directions(call: CallbackQuery):
     return
 
   await init.bot.answer_callback_query(call.id, text="Категории выбранны!")
-  ob = '\n'.join(map(lambda e: str(f"- *{edu_directions[e]}*"), user["directions"]))
-  await init.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=f"Категория:\n{ob}", parse_mode='Markdown')
-
-  await cmd_edutype.send_edutypes_raw(call.from_user.id)
+  
+  await cmd_edutype.send_edutypes_edit(call.message, call.from_user.id) # next step
 
   return

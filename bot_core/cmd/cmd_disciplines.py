@@ -34,11 +34,12 @@ async def send_discipline_select(message: Message, user_id: int, is_resend: bool
   payload = user["payloads"][user["payload_step"]]
   if (not is_resend and len(payload["disciplines"]) == 0): await init.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id, text="Загрузка дисциплин...")
   disc_data = get_tyuiu_disciplines(payload["org"], payload["eduform"], payload["direction"], payload["edutype"])
+  print("disc_data:", disc_data)
   markup = build_disciplines_markup(payload["disciplines"], disc_data)
   text = (
-    f'*Выбор дисциплины* - шаг {user["payload_step"] + 1} из {len(user["payloads"])}\n'
+    f'*Выбор направления подготовки* - шаг {user["payload_step"] + 1} из {len(user["payloads"])}\n'
     f"*Форма обучения:*\xa0{edu_forms[payload['eduform']].lower()}\n"
-    f"*Направление:*\xa0{edu_directions[payload['direction']].lower()}\n"
+    f"*Категория:*\xa0{edu_directions[payload['direction']].lower()}\n"
     f"*Уровень образования:*\xa0{edu_types[payload['edutype']].lower()}\n"
     f"*Организация:*\xa0{tyuiu_orgs[payload['org']]}\n"
   )
@@ -73,8 +74,8 @@ async def process_disciplines(call: CallbackQuery):
     if user_selected:
       text = (
         f"**Выбрана дисциплина:**\n"
-        f"Форма обучения:\xa0*{edu_forms[current_payload['eduform']].lower()}*\n"
-        f"Направление:\xa0*{edu_directions[current_payload['direction']].lower()}*\n"
+        f"Форма:\xa0*{edu_forms[current_payload['eduform']].lower()}*\n"
+        f"Категория:\xa0*{edu_directions[current_payload['direction']].lower()}*\n"
         f"Уровень образования:\xa0*{edu_types[current_payload['edutype']].lower()}*\n"
         f"Организация:\xa0*{tyuiu_orgs[current_payload['org']]}*\n"
         f"Дисциплины:\n" + '\n'.join(map(lambda e: str(f"- *{e}*"), user_disciplines))
@@ -97,11 +98,10 @@ async def process_disciplines(call: CallbackQuery):
       await init.bot.answer_callback_query(call.id, text="Выбор дисциплины завершен")
       await init.bot.current_states.set_data(call.message.chat.id, call.from_user.id, "payloads", user["payloads"])
       await init.bot.send_message(call.message.chat.id, "Отлично! Я запомнил твой выбор!")
-      pld = json.dumps(user["payloads"], indent=2, ensure_ascii=False)
-      print(pld)
+      #pld = json.dumps(user["payloads"], indent=2, ensure_ascii=False)
+      #print(pld)
 
-      await cmd_check.send_check_wrapper_raw(call.from_user.id)
+      if not user["in_refill_mode"]:
+        return await cmd_check.send_check_wrapper_raw(call.from_user.id)
 
-      # await init.bot.send_message(call.message.chat.id, 'Сколько у тебя суммарно баллов?')
-      # await init.bot.register_next_step_handler(call.message, process_mark_step)
       return
