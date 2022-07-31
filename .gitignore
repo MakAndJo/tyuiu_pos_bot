@@ -3,4 +3,4 @@
 .history
 .state*
 __pycache__
-*.pyi
+*.pyc
