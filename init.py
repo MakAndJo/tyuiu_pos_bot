@@ -6,7 +6,7 @@ from constants import TOKEN
 bot: AsyncTeleBot
 
 def init_bot():
-  state_storage: StatePickleStorage = StatePickleStorage(file_path="./tyuiu_pos_bot/.state.pkl")
+  state_storage: StatePickleStorage = StatePickleStorage(file_path="./.state.pkl")
   global bot
   bot = AsyncTeleBot(TOKEN, state_storage=state_storage)
   bot.add_custom_filter(StateFilter(bot))
