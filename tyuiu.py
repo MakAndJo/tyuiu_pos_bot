@@ -190,11 +190,11 @@ def get_tyuiu_results(payload: dict, mark: int, with_originals: bool = False) ->
   data = get_tyuiu_data(tyuiu_payload)
   parsed_data = parse_tyuiu_data(data)
   if parsed_data:
-    end_result['prof'] = payload['prof']
     end_result['org'] = payload['org']
-    end_result['direction'] = int(payload['direction'])
-    end_result['eduform'] = int(payload['eduform'])
-    end_result['edutype'] = parse_discipline_edutype(payload['prof'])
+    end_result['prof'] = str(tyuiu_payload['prof'])
+    end_result['direction'] = int(tyuiu_payload['direction'])
+    end_result['eduform'] = int(tyuiu_payload['eduform'])
+    end_result['edutype'] = parse_discipline_edutype(tyuiu_payload['prof'])
 
     if end_result['direction'] == 2: # budget
       if end_result['edutype'] == 1: # spo prof
@@ -320,7 +320,7 @@ def main():
       
       print(f"Профессия: {res['prof']}")
 
-      print(f"Общее количество бюджетных мест: {res['bak_count']}")
+      print(f"Общее количество бюджетных мест: {res['budget_count']}")
 
       if "pos" in res:
         print(f"Ваша позиция в списке: {res['pos']} ({res['total']} баллов)")
