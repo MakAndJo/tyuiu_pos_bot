@@ -45,6 +45,6 @@ async def process_orgs(call: CallbackQuery):
 
   await init.bot.answer_callback_query(call.id, text="Организации выбраны!")
 
-  await cmd_disciplines.send_disciplines_raw(call.from_user.id)
+  await cmd_disciplines.send_disciplines_edit(call.message, call.from_user.id)
 
   return
