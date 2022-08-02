@@ -42,7 +42,7 @@ async def approve(message: Message):
   if not "name" in user:
     user['name'] = message.from_user.first_name
     user['id'] = message.from_user.id
-    await init.bot.send_message(message.chat.id, "Окей. Начнём с заполнения твоих предпочтений!", reply_markup=ReplyKeyboardRemove())
+    #await init.bot.send_message(message.chat.id, "Окей. Начнём с заполнения твоих предпочтений!", reply_markup=ReplyKeyboardRemove())
   if "name" in user:
     #await init.bot.send_message(message.chat.id, "Окей. Давай продолжим...", reply_markup=ReplyKeyboardRemove())
     print("User exists")
@@ -62,7 +62,7 @@ async def approve(message: Message):
     if len(user["payloads"]) == 0 or len([e for e in user["payloads"] if len(e["disciplines"])]) != len(user["payloads"]):
       print("User has no payloads or partial filled")
       return await cmd_disciplines.send_disciplines_raw(message.from_user.id)
-    return await init.bot.send_message(message.chat.id, "Окей. Выбери комманду:\n/check_pos - проверить текущую позицию\n/me - твои данные\n/refill - изменить данные", reply_markup=ReplyKeyboardRemove())
+    return await init.bot.send_message(message.chat.id, "Окей. Выбери комманду:\n/check_pos - проверить текущую позицию\n/me - твои данные\n/refill - изменить данные\n/clear - отчистить все данные", reply_markup=ReplyKeyboardRemove())
   return False
 
 async def send_state(message: Message):
@@ -82,3 +82,7 @@ async def send_me(message: Message):
 async def start_refill(message: Message):
   await init.bot.current_states.set_data(message.chat.id, message.from_user.id, "in_refill_mode", True)
   return await cmd_eduforms.send_eduforms_raw(message.from_user.id, message.chat.id)
+
+async def clear_user(message: Message):
+  await init.bot.current_states.reset_data(message.chat.id, message.from_user.id)
+  return await init.bot.send_message(message.chat.id, "Окей. Ты очистил все данные. Начнём заново!", reply_markup=ReplyKeyboardRemove())
