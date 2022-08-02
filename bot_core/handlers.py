@@ -6,8 +6,9 @@ def init_handlers():
 
   init.bot.register_message_handler(cmd.cmd_start.send_me, commands='me', state="*")
   init.bot.register_message_handler(cmd.cmd_start.send_state, commands='state', state="*")
-  init.bot.register_message_handler(cmd.cmd_start.start_refill, commands='refill', state="*", chat_types=['private'])
-  init.bot.register_message_handler(cmd.cmd_check.send_check_wrapper, commands='check_pos', state="*", chat_types=['private'])
+  init.bot.register_message_handler(cmd.cmd_start.start_refill, commands='refill', state="*")
+  init.bot.register_message_handler(cmd.cmd_check.send_check_wrapper, commands='check_pos', state="*")
+  init.bot.register_message_handler(cmd.cmd_start.clear_user, commands='clear', state="*")
 
   init.bot.register_message_handler(cmd.cmd_start.start, commands=['start'], chat_types=['private'])
   init.bot.register_message_handler(cmd.cmd_start.approve, state=UserState.approve, chat_types=['private'])
