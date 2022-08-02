@@ -112,22 +112,14 @@ def create_tyuiu_payload(t_data: dict, strict = False) -> dict:
   else: return t_data
 
 def get_tyuiu_data(t_payload: dict) -> Union[str, None]:
-  try:
-    response = requests.post(TYUIU_URL, data=t_payload, headers=TYUIU_HEADERES)
-    return response.text
-  except Exception as e:
-    print(e)
-    return None
+  response = requests.post(TYUIU_URL, data=t_payload, headers=TYUIU_HEADERES)
+  return response.text
 
 def parse_tyuiu_data(t_html: str) -> Union[Tag, NavigableString, None]:
-  try:
-    t_parsed_html = BeautifulSoup(t_html, features='html.parser')
-    for element in t_parsed_html(text=lambda text: isinstance(text, Comment)):
-      element.extract()
-    return t_parsed_html
-  except Exception as e:
-    print(e)
-    return None
+  t_parsed_html = BeautifulSoup(t_html, features='html.parser')
+  for element in t_parsed_html(text=lambda text: isinstance(text, Comment)):
+    element.extract()
+  return t_parsed_html
 
 def parse_tyuiu_table_to_array(t_table: Union[Tag, NavigableString, None], add_header=True) -> List[Union[List, dict]]:
 
