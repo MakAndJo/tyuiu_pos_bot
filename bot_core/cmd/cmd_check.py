@@ -1,9 +1,7 @@
-import json
 from telebot.types import Message, CallbackQuery
 from bot_core.states import UserState
 from bot_core.keyboards import build_origs_markup
-from constants import edu_forms, edu_directions, edu_types, tyuiu_orgs
-from tyuiu import get_tyuiu_disciplines
+from constants import edu_forms, edu_directions, edu_types
 from tyuiu import get_tyuiu_results
 import init
 
@@ -14,7 +12,7 @@ async def send_check_wrapper_raw(user_id: int, chat_id: int = None):
   if not chat_id: chat_id = user_id
   user = await init.bot.current_states.get_data(chat_id, user_id)
   if not "payloads" in user or len(user["payloads"]) == 0 or len([e for e in user["payloads"] if len(e["disciplines"])]) != len(user["payloads"]):
-    return await init.bot.send_message(chat_id, "Нет дисциплин для проверки!")
+    return await init.bot.send_message(chat_id, "Нет дисциплин или они заполнены частично!")
   if not "mark" in user or user["mark"] == 0:
     user["mark"] = 0
     print("User has no mark set")
@@ -26,10 +24,10 @@ async def send_check_raw(user_id: int, chat_id: int = None):
   user = await init.bot.current_states.get_data(chat_id, user_id)
   await init.bot.set_state(user_id, UserState.check_pos)
   #await init.bot.send_message(chat_id, "Запрашиваем данные с сервера...")
-  for p_ind, payload in enumerate(user["payloads"]):
+  for _, payload in enumerate(user["payloads"]):
     print("Checking payload", payload)
     if len(payload["disciplines"]) == 0: continue
-    for d_ind, discipline in enumerate(payload["disciplines"]):
+    for _, discipline in enumerate(payload["disciplines"]):
       msg = await init.bot.send_message(chat_id, "Загрузка данных...")
       data = get_tyuiu_results({
         'edutype': payload["edutype"],
@@ -58,7 +56,6 @@ async def send_mark_input(message: Message):
 async def send_mark_input_raw(user_id: int, chat_id: int = None):
   if not chat_id: chat_id = user_id
   await init.bot.set_state(user_id, UserState.set_user_mark)
-  user = await init.bot.current_states.get_data(chat_id, user_id)
   return await init.bot.send_message(chat_id, "Введите свои баллы:")
 
 async def process_input_mark(message: Message):
@@ -69,7 +66,6 @@ async def process_input_mark(message: Message):
     return await init.bot.reply_to(message, f'"{mark}" не похоже на баллы ЕГЭ! Дак сколько у тебя баллов?')
   user = await init.bot.current_states.get_data(message.chat.id, message.from_user.id)
   user["mark"] = int(mark)
-  #await init.bot.reply_to(message, f'Хмм.. {user["mark"]} - реально неплохо!'
   return await send_check_wrapper_raw(message.from_user.id, message.chat.id)
 
 async def send_origs_input(message: Message):
