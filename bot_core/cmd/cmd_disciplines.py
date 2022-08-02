@@ -9,10 +9,10 @@ import init
 
 async def prebuild_payloads(eduforms: list, directions: list, edutypes: list, orgs: list):
   end = []
-  for i_org, org in enumerate(orgs):
-    for i_form, eduform in enumerate(eduforms):
-      for i_dir, direction in enumerate(directions):
-        for i_type, edutype in enumerate(edutypes):
+  for _, org in enumerate(orgs):
+    for _, eduform in enumerate(eduforms):
+      for _, direction in enumerate(directions):
+        for _, edutype in enumerate(edutypes):
           end.append({"eduform": eduform, "direction": direction, "org": org, "edutype": edutype, "disciplines": []})
   return end
 
@@ -26,8 +26,15 @@ async def send_disciplines_raw(user_id: int, chat_id: int = None):
   if len(user["payloads"]) == 0:
     user["payloads"] = await prebuild_payloads(user["eduforms"], user["directions"], user["edutypes"], user["orgs"])
   msg = await init.bot.send_message(chat_id, "Загрузка данных...")
-  await send_discipline_select(msg, user_id)
-  return True
+  return await send_discipline_select(msg, user_id)
+
+async def send_disciplines_edit(message: Message, user_id: int):
+  await init.bot.set_state(user_id, UserState.set_edu_discplines)
+  user = await init.bot.current_states.get_data(user_id, user_id)
+  if len(user["payloads"]) == 0:
+    user["payloads"] = await prebuild_payloads(user["eduforms"], user["directions"], user["edutypes"], user["orgs"])
+  await init.bot.edit_message_text("Загрузка данных...", message.chat.id, message.message_id)
+  return await send_discipline_select(message, user_id)
 
 async def send_discipline_select(message: Message, user_id: int, is_resend: bool = False):
   user = await init.bot.current_states.get_data(user_id, user_id)
@@ -51,8 +58,7 @@ async def process_disciplines(call: CallbackQuery):
   current_payload = user["payloads"][user["payload_step"]]
   tyuiu_disciplines = get_tyuiu_disciplines(current_payload["org"], current_payload["eduform"], current_payload["direction"], current_payload["edutype"])
   user_disciplines = current_payload["disciplines"]
-  #print("process_disciplines", current_payload, tyuiu_disciplines)
-  if call.data != "discipline-next":
+  if call.data != "discipline-next": # select
     discipline = call.data.split("=")[1]
     if discipline == "all":
       user_disciplines.extend(tyuiu_disciplines)
@@ -66,42 +72,26 @@ async def process_disciplines(call: CallbackQuery):
         await init.bot.answer_callback_query(call.id, text=f"{discipline} добавлен в выбор!")
         user_disciplines.append(discipline)
     await init.bot.current_states.set_data(call.message.chat.id, call.from_user.id, "payloads", user["payloads"])
-    await send_discipline_select(call.message, call.from_user.id, True)
-  else:
-    should_continue = user["payload_step"] < len(user["payloads"]) - 1
-    user_selected = len(user_disciplines) > 0
-    msg = call.message
-    if user_selected:
-      text = (
-        f"**Выбрана дисциплина:**\n"
-        f"Форма:\xa0*{edu_forms[current_payload['eduform']].lower()}*\n"
-        f"Категория:\xa0*{edu_directions[current_payload['direction']].lower()}*\n"
-        f"Уровень образования:\xa0*{edu_types[current_payload['edutype']].lower()}*\n"
-        f"Организация:\xa0*{tyuiu_orgs[current_payload['org']]}*\n"
-        f"Дисциплины:\n" + '\n'.join(map(lambda e: str(f"- *{e}*"), user_disciplines))
-      )
-      await init.bot.edit_message_text(chat_id=msg.chat.id, message_id=msg.message_id, text=text, parse_mode='Markdown')
-      if should_continue: msg = await init.bot.send_message(call.message.chat.id, text="Загрузка следующих дисциплин...")
-    if not should_continue and not user_selected: # if end of slections and no disciplines selected
-      await init.bot.delete_message(chat_id=msg.chat.id, message_id=msg.message_id)
-    if should_continue:
-      if not user_selected:
-        user["payloads"].remove(user["payloads"][user["payload_step"]])
-        await init.bot.answer_callback_query(call.id, text="Пропуск выбора дисциплины")
-      else:
+    return await send_discipline_select(call.message, call.from_user.id, True)
+  else: # next
+    if len(user_disciplines) == 0: # skip discipline selection if no disciplines selected
+      user["payloads"].remove(user["payloads"][user["payload_step"]])
+      await init.bot.answer_callback_query(call.id, text="Пропуск выбора дисциплины")
+    if user["payload_step"] < len(user["payloads"]) - 1: # if not last payload
+      if len(user_disciplines) > 0: # if user selected some disciplines
         user["payload_step"] += 1
-      await init.bot.answer_callback_query(call.id, text="Выбор следующей дисциплины")
       await init.bot.current_states.set_data(call.message.chat.id, call.from_user.id, "payloads", user["payloads"])
-      await send_discipline_select(msg, call.from_user.id, False)
+      await init.bot.answer_callback_query(call.id, text="Загрузка следующей дисциплины...")
+      return await send_discipline_select(call.message, call.from_user.id, True)
     else:
       user["payload_step"] = 0
       await init.bot.answer_callback_query(call.id, text="Выбор дисциплины завершен")
       await init.bot.current_states.set_data(call.message.chat.id, call.from_user.id, "payloads", user["payloads"])
-      await init.bot.send_message(call.message.chat.id, "Отлично! Я запомнил твой выбор!")
-      #pld = json.dumps(user["payloads"], indent=2, ensure_ascii=False)
-      #print(pld)
+      await init.bot.edit_message_text("Отлично! Я запомнил твой выбор!", call.message.chat.id, call.message.message_id)
 
-      if not user["in_refill_mode"]:
+      if user["in_refill_mode"]:
+        user["in_refill_mode"] = False
+      else:
         return await cmd_check.send_check_wrapper_raw(call.from_user.id)
 
-      return
+      return False
