@@ -220,7 +220,7 @@ def get_tyuiu_results(payload: dict, mark: int, with_originals: bool = False) ->
     if len(results) != 0:
       t_pos = 0
       t_total = int(mark)
-      for index, result in enumerate(results):
+      for _, result in enumerate(results):
         pos = int(result[0])
         comp_type = str(result[9])
         if comp_type == "Общий конкурс":
@@ -233,8 +233,6 @@ def get_tyuiu_results(payload: dict, mark: int, with_originals: bool = False) ->
       end_result['pos'] = t_pos
       end_result['total'] = t_total
   return end_result
-    
-
 
 
 def main():
@@ -253,7 +251,7 @@ def main():
     elif str(word).startswith("н") or str(word).startswith("n"):
       return False
     return None
-  
+
   needed_payloads = [
     {
       'org': 2,
@@ -300,7 +298,7 @@ def main():
       word: str = input('Введите своё количество баллов: [100-300]\xa0').lower()
       if not is_digit(word) or int(word) > 300 or int(word) < 100: # if not exam mark
         print("Введите баллы от 100 до 300!")
-      else: 
+      else:
         mark = int(word)
         break
 
@@ -308,16 +306,16 @@ def main():
       word: str = input('С оригиналами? [Д/н]\xa0').lower()
       if not is_valid_w_bool(word): # if not exam mark
         print("Введите да или нет!")
-      else: 
+      else:
         originals = parse_w_bool(word)
         break
 
-    for indx, payload in enumerate(needed_payloads):
+    for _, payload in enumerate(needed_payloads):
 
       print("\n")
 
       res = get_tyuiu_results(payload, mark, originals)
-      
+
       print(f"Профессия: {res['prof']}")
 
       print(f"Общее количество бюджетных мест: {res['budget_count']}")
@@ -326,7 +324,7 @@ def main():
         print(f"Ваша позиция в списке: {res['pos']} ({res['total']} баллов)")
       else:
         print("Ваша позиция в списке: не найдена")
-  
+
   run()
   return False
 
@@ -338,4 +336,3 @@ if __name__ == '__main__':
     pass
 else:
   print("Import tyuiu:", __name__)
-

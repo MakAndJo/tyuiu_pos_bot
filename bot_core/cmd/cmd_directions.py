@@ -46,7 +46,7 @@ async def process_directions(call: CallbackQuery):
     return
 
   await init.bot.answer_callback_query(call.id, text="Категории выбранны!")
-  
+
   await cmd_edutype.send_edutypes_edit(call.message, call.from_user.id) # next step
 
   return

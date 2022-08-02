@@ -41,7 +41,7 @@ async def process_eduforms(call: CallbackQuery):
     return
 
   await init.bot.answer_callback_query(call.id, text="Формы обучения выбранны!")
-  
+
   await cmd_directions.send_directions_edit(call.message, call.from_user.id) # next step
 
   return

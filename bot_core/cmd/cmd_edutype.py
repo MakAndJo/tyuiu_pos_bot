@@ -44,7 +44,7 @@ async def process_edutype(call: CallbackQuery):
     return
 
   await init.bot.answer_callback_query(call.id, text="Уровни образования выбранны!")
-  
+
   await cmd_orgs.send_orgs_edit(call.message, call.from_user.id)
 
   return
