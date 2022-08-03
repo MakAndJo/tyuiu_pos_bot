@@ -1,9 +1,13 @@
+import json
+from datetime import datetime
 from telebot.types import Message, CallbackQuery
 from bot_core.states import UserState
-from bot_core.keyboards import build_origs_markup
+from bot_core.keyboards import build_check_markup, build_origs_markup
 from constants import edu_forms, edu_directions, edu_types
 from tyuiu import get_tyuiu_results
 import init
+
+cached_boxes = {}
 
 async def send_check_wrapper(message: Message):
   return await send_check_wrapper_raw(message.from_user.id, message.chat.id)
@@ -24,31 +28,64 @@ async def send_check_raw(user_id: int, chat_id: int = None):
   user = await init.bot.current_states.get_data(chat_id, user_id)
   await init.bot.set_state(user_id, UserState.check_pos)
   #await init.bot.send_message(chat_id, "Запрашиваем данные с сервера...")
-  for _, payload in enumerate(user["payloads"]):
-    print("Checking payload", payload)
+  for pay_i, payload in enumerate(user["payloads"]):
     if len(payload["disciplines"]) == 0: continue
-    for _, discipline in enumerate(payload["disciplines"]):
+    for dis_i, discipline in enumerate(payload["disciplines"]):
       msg = await init.bot.send_message(chat_id, "Загрузка данных...")
-      data = get_tyuiu_results({
+      await send_check_edit(msg, {
         'edutype': payload["edutype"],
         'eduform': payload["eduform"],
         'direction': payload["direction"],
         'org': payload["org"],
-        'prof': discipline,
-      }, user["mark"], user["with_originals"])
-      required_keys = ["pos", "prof", "budget_count", "total"]
-      if all(x in [k for k in data] for x in required_keys):
-        text = (
-          f"*Направление подготовки:* {data['prof']}\n"
-          f"*Категория:* {edu_directions[data['direction']]}\n"
-          f"*Форма:* {edu_forms[data['eduform']]}\n"
-          f"*Уровень образования:* {edu_types[data['edutype']]}\n"
-          f"*Бюджетных мест:* {data['budget_count']}\n"
-          f"*Ваша позиция:* {data['pos']} ({data['total']} баллов)\n"
-        )
-        await init.bot.edit_message_text(chat_id=msg.chat.id, message_id=msg.message_id, text=text, parse_mode='Markdown')
-      else: await init.bot.edit_message_text(chat_id=msg.chat.id, message_id=msg.message_id, text='Похоже, что-то пошло не так...')
+        'discipline': discipline,
+        'usermark': user['mark'],
+        'with_originals': user["with_originals"],
+      })
 
+async def send_check_edit(message: Message, payload: dict):
+  data = get_tyuiu_results({
+    'edutype': payload["edutype"],
+    'eduform': payload["eduform"],
+    'direction': payload["direction"],
+    'org': payload["org"],
+    'prof': payload["discipline"],
+  }, payload["usermark"], payload["with_originals"])
+  required_keys = ["pos", "prof", "budget_count", "total"]
+  date = datetime.now()
+  if all(x in [k for k in data] for x in required_keys):
+    text = (
+      f"<b>Направление подготовки:</b> {data['prof']}\n"
+      f"<b>Категория:</b> {edu_directions[data['direction']]}\n"
+      f"<b>Форма:</b> {edu_forms[data['eduform']]}\n"
+      f"<b>Уровень образования:</b> {edu_types[data['edutype']]}\n"
+      f"<b>Бюджетных мест:</b> {data['budget_count']}\n"
+      f"<b>Ваша позиция:</b> {data['pos']} ({data['total']} баллов)\n"
+      f"<i>Обновлено:</i> {date.strftime('%Y-%m-%d %H:%M:%S')}\n"
+    )
+    cached_data = {
+      'edutype': payload["edutype"],
+      'eduform': payload["eduform"],
+      'direction': payload["direction"],
+      'org': payload["org"],
+      'discipline': payload["discipline"],
+      'usermark': payload["usermark"],
+      'with_originals': payload["with_originals"],
+    }
+    cached_id = hash(json.dumps(cached_data))
+    cached_boxes[cached_id] = cached_data
+    return await init.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id, text=text, parse_mode='Html', reply_markup=build_check_markup(cached_id))
+  return await init.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id, text='Похоже, что-то пошло не так...')
+
+
+async def process_check(call: CallbackQuery):
+  action = call.data.split("=")[0].split("-")[1] # check-action=cached_id
+  cached_id = int(call.data.split("=")[1])
+  cached = cached_boxes[cached_id]
+  print(f"Processing check: {action} {json.dumps(cached, indent=2, ensure_ascii=False)}")
+  if action == "reload":
+    await init.bot.answer_callback_query(call.id, "Загрузка данных...")
+    return await send_check_edit(call.message, cached)
+  return
 
 async def send_mark_input(message: Message):
   return await send_mark_input_raw(message.from_user.id, message.chat.id)

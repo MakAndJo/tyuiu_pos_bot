@@ -1,4 +1,4 @@
-from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
+from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton
 from constants import tyuiu_orgs, edu_forms, edu_directions, edu_types
 
 def chunks(xs, n):
@@ -43,14 +43,19 @@ def build_directions_markup(user_direction: list):
   markup.add(InlineKeyboardButton(f"Продолжить\xa0{'➡️' if len(user_direction) > 0 else ''}", callback_data="direction-next"))
   return markup
 
-def build_disciplines_markup(user_disciplines: list, disciplines: list):
+def build_disciplines_markup(user_disciplines: list, disciplines: list, is_loading: bool = False):
   markup = InlineKeyboardMarkup()
   for index, discipline in enumerate(disciplines):
     markup.add(InlineKeyboardButton(f"{'✅' if discipline in user_disciplines else ''}\xa0{discipline}", callback_data=f"discipline={index}"))
-  markup.add(InlineKeyboardButton(f"Продолжить\xa0{'➡️' if len(user_disciplines) > 0 else ''}", callback_data="discipline-next"))
+  markup.add(InlineKeyboardButton("Загрузка..." if is_loading else f"Продолжить\xa0{'➡️' if len(user_disciplines) > 0 else ''}", callback_data="discipline-next"))
   return markup
 
 def build_origs_markup():
   markup = InlineKeyboardMarkup()
   markup.add(InlineKeyboardButton("С оригиналами", callback_data="orig=on"), InlineKeyboardButton("Общий конкурс", callback_data="orig=off"))
+  return markup
+
+def build_check_markup(number: int):
+  markup = InlineKeyboardMarkup()
+  markup.add(InlineKeyboardButton("Обновить 🔄", callback_data=f"check-reload={number}"))
   return markup
