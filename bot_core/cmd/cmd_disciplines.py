@@ -36,10 +36,9 @@ async def send_disciplines_edit(message: Message, user_id: int):
   await init.bot.edit_message_text("Загрузка данных...", message.chat.id, message.message_id)
   return await send_discipline_select(message, user_id)
 
-async def send_discipline_select(message: Message, user_id: int, is_resend: bool = False):
+async def send_discipline_select(message: Message, user_id: int):
   user = await init.bot.current_states.get_data(user_id, user_id)
   payload = user["payloads"][user["payload_step"]]
-  if (not is_resend and len(payload["disciplines"]) == 0): await init.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id, text="Загрузка дисциплин...")
   disc_data = get_tyuiu_disciplines(payload["org"], payload["eduform"], payload["direction"], payload["edutype"])
   print("disc_data:", disc_data)
   markup = build_disciplines_markup(payload["disciplines"], disc_data)
@@ -72,7 +71,7 @@ async def process_disciplines(call: CallbackQuery):
         await init.bot.answer_callback_query(call.id, text=f"{discipline} добавлен в выбор!")
         user_disciplines.append(discipline)
     await init.bot.current_states.set_data(call.message.chat.id, call.from_user.id, "payloads", user["payloads"])
-    return await send_discipline_select(call.message, call.from_user.id, True)
+    return await send_discipline_select(call.message, call.from_user.id)
   else: # next
     if len(user_disciplines) == 0: # skip discipline selection if no disciplines selected
       user["payloads"].remove(user["payloads"][user["payload_step"]])
@@ -82,7 +81,8 @@ async def process_disciplines(call: CallbackQuery):
         user["payload_step"] += 1
       await init.bot.current_states.set_data(call.message.chat.id, call.from_user.id, "payloads", user["payloads"])
       await init.bot.answer_callback_query(call.id, text="Загрузка следующей дисциплины...")
-      return await send_discipline_select(call.message, call.from_user.id, True)
+      await init.bot.edit_message_reply_markup(chat_id=call.message.chat.id, message_id=call.message.message_id, reply_markup=build_disciplines_markup(user_disciplines, tyuiu_disciplines, True))
+      return await send_discipline_select(call.message, call.from_user.id)
     else:
       user["payload_step"] = 0
       await init.bot.answer_callback_query(call.id, text="Выбор дисциплины завершен")
