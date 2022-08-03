@@ -28,7 +28,7 @@ async def init_state_store(data):
 
 async def start(message: Message):
   await init.bot.set_state(message.from_user.id, UserState.start)
-  markup = ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True, selective=True)
+  markup = ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
   markup.add("Погнали!")
   user = await init.bot.current_states.get_data(message.chat.id, message.from_user.id)
   await init.bot.send_message(message.chat.id, f'Привет {message.from_user.first_name}!\xa0' +
