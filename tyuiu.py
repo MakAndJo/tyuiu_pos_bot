@@ -49,6 +49,8 @@ TYUIU_PAYLOAD = {
   'prof': '21.05.02 Прикладная геология,  21.05.03 Технология геологической разведки'
 }
 
+#prof regex /^(\d+).(\d+).(\d+)(?|.?)\s(\W+)$/g
+
 cached_disciplines: Array[dict[str,any]] = []
 
 def get_tyuiu_organizations() -> dict[int, str]:
@@ -166,11 +168,11 @@ def parse_tyuiu_table_to_array(t_table: Union[Tag, NavigableString, None], add_h
 def parse_discipline_edutype(discipline: str) -> int:
   d_type = str(discipline).split('.')[1]
   if len(d_type) == 1: return 42 # asp
-  if d_type == "01": return 1 #spo prof
-  if d_type == "02": return 2 #spo spec
-  if d_type == "03": return 3 #bak
+  if d_type == "01": return 1 #spo prof <- same as 2
+  if d_type == "02": return 2 #spo spec <- same as 1
+  if d_type == "03": return 3 #bak <- same as 5
   if d_type == "04": return 4 #mag
-  if d_type == "05": return 5 #spec vo
+  if d_type == "05": return 5 #spec vo <- same as 3
   return 0
 
 
@@ -213,15 +215,42 @@ def get_tyuiu_results(payload: dict, mark: int, with_originals: bool = False) ->
       t_pos = 0
       t_total = int(mark)
       for _, result in enumerate(results):
-        pos = int(result[0])
-        comp_type = str(result[9])
-        if comp_type == "Общий конкурс":
-          total = int(result[7])
-          if total <= int(mark):
+        if end_result['edutype'] == 3 or end_result['edutype'] == 5: # bak or spec vo
+          pos = int(result[0])
+          comp_type = str(result[9])
+          if comp_type == "Общий конкурс":
+            total = int(result[7]) # 298
+            if total <= int(mark): # mark ege balls
+              t_pos = pos
+              t_total = total
+              break
+          t_pos = pos + 1
+        elif end_result['edutype'] == 1 or end_result['edutype'] == 2: # spo prof or spo spec
+          pos = int(result[0])
+          comp_type = str(result[3])
+          if comp_type == "Общий конкурс":
+            total = float(result[2]) # 4,999
+            if total <= float(mark): # mark attestat sr res
+              t_pos = pos
+              t_total = total
+              break
+          t_pos = pos + 1
+        elif end_result['edutype'] == 4: #mag
+          pos = int(result[0])
+          total = int(result[4]) # 100
+          if total <= int(mark): # mark vst isp
             t_pos = pos
             t_total = total
             break
-        t_pos = pos + 1
+          t_pos = pos + 1
+        elif end_result['edutype'] == 42: #asp
+          pos = int(result[0])
+          total = int(result[4]) # 100
+          if total <= int(mark): # mark vst isp
+            t_pos = pos
+            t_total = total
+            break
+          t_pos = pos + 1
       end_result['pos'] = t_pos
       end_result['total'] = t_total
   return end_result
